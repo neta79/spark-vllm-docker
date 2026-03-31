@@ -106,8 +106,9 @@ network:
     enP2p1s0f1np1:
       dhcp4: no
       dhcp6: no
-      link-local: [ ipv4 ]
+      link-local: []
       mtu: 9000
+      addresses: [192.168.178.11/24]
 ```
 
 Create `/etc/netplan/40-cx7.yaml` on `spark2`:
@@ -124,16 +125,12 @@ network:
     enP2p1s0f1np1:
       dhcp4: no
       dhcp6: no
-      link-local: [ ipv4 ]
+      link-local: []
       mtu: 9000
+      addresses: [192.168.178.12/24]
 ```
 
-Please note, that only one interface of the "twin" pair needs an IP address, but MTU needs to be set on both.
-You can also assign a separate address to another "twin" if you want to utilize the second interface independently, but make sure you assign an IP address from a different subnet.
-
-For instance, for the example above, if you want to assign an IP to `enP2p1s0f1np1`, you need to use `192.168.177.12` on `spark`. **DO NOT use the same subnet on both "twins"** - it will confuse autodiscovery and mess up routing.
-
-This will not affect vLLM performance as it will use RDMA over RoCE using both "twins", even if the IP is only set on one.
+**DO NOT use the same subnet on both "twins"** - it will confuse autodiscovery and mess up routing.
 
 Then run on each node:
 

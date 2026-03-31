@@ -24,7 +24,7 @@ CONTAINER_NAME="$DEFAULT_CONTAINER_NAME"
 COMMAND_TO_RUN=""
 DAEMON_MODE="false"
 CHECK_CONFIG="false"
-ACTION="start"
+ACTION=""
 CLUSTER_WAS_RUNNING="false"
 MOD_PATHS=()
 MOD_TYPES=()
@@ -69,7 +69,7 @@ usage() {
     echo "  --pids-limit    Process limit (default: 4096, only with --non-privileged)"
     echo "  --shm-size-gb   Shared memory size in GB (default: 64, only with --non-privileged)"
     echo "  --config        Path to .env configuration file (default: .env in script directory)
-  --setup         Force autodiscovery and save configuration (even if .env exists)"
+  --setup/--discover  Force autodiscovery and save configuration (even if .env exists)"
     echo "  action          start | stop | status | exec (Default: start). Not compatible with --launch-script."
     echo "  command         Command to run (only for 'exec' action). Not compatible with --launch-script."
     echo ""
@@ -132,7 +132,7 @@ while [[ "$#" -gt 0 ]]; do
         -d) DAEMON_MODE="true" ;;
         -h|--help) usage ;;
         --config) CONFIG_FILE="$2"; shift ;;
-        --setup) FORCE_DISCOVER=true; export FORCE_DISCOVER ;;
+        --setup|--discover) FORCE_DISCOVER=true; export FORCE_DISCOVER ;;
         start|stop|status) 
             if [[ -n "$LAUNCH_SCRIPT_PATH" ]]; then
                 echo "Error: Action '$1' is not compatible with --launch-script. Please omit the action or not use --launch-script."
@@ -426,6 +426,10 @@ if [[ "${FORCE_DISCOVER:-false}" == "true" ]]; then
     [[ -z "$NODES_ARG" && -n "$DOTENV_CLUSTER_NODES" ]] && NODES_ARG="$DOTENV_CLUSTER_NODES"
     [[ -z "$ETH_IF" && -n "$DOTENV_ETH_IF" ]] && ETH_IF="$DOTENV_ETH_IF"
     [[ -z "$IB_IF" && -n "$DOTENV_IB_IF" ]] && IB_IF="$DOTENV_IB_IF"
+    # If no action was specified, setup was the only intent — exit cleanly
+    if [[ -z "$ACTION" && "$LAUNCH_SCRIPT_MODE" != "true" ]]; then
+        exit 0
+    fi
 fi
 
 if [[ "$SOLO_MODE" == "true" ]]; then
@@ -503,6 +507,12 @@ if [[ "$ACTION" == "start" || "$ACTION" == "exec" || "$CHECK_CONFIG" == "true" ]
             echo "  SSH to $worker: OK"
         done
     fi
+fi
+
+if [[ -z "$ACTION" && "$LAUNCH_SCRIPT_MODE" != "true" ]]; then
+    echo "Error: No action specified. Use: start | stop | status | exec"
+    usage
+    exit 1
 fi
 
 if [[ "$CHECK_CONFIG" == "true" ]]; then
